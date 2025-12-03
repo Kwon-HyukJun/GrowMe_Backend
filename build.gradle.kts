@@ -29,4 +29,6 @@ dependencies {
     implementation(libs.ktor.client.content.negotiation)
 
     implementation("io.ktor:ktor-server-cors:3.3.2")
+    implementation("org.apache.pdfbox:pdfbox:2.0.29")
+    implementation("kr.dogfoot:hwplib:1.1.4")
 }
