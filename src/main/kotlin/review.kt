@@ -29,13 +29,13 @@ private fun readPdf(bytes: ByteArray): String
     return text
 }
 
-private fun addDB(title: String, content: String) {
-    transaction {
+private fun addDB(title: String, content: String) : Int {
+    return transaction {
         feedbackInfo.insert {
             it[feedbackInfo.title] = title
             it[text] = content
             it[qnaQuery] = mapOf()
-        }
+        } get feedbackInfo.id
     }
 }
 
@@ -88,12 +88,12 @@ fun Route.reviewRouter()
 
             if(flag)
             {
-                addDB(book, extractedText);
+                val id = addDB(book, extractedText);
                 //reText = callGpt(book!!, extractedText)
+                call.respond(id)
+                return@post
             }
-
-            call.respond("Sussess")
-            //call.respond(reText)
+            call.respond("fail")
         }
     }
 }

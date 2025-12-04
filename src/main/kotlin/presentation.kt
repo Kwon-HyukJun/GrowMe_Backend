@@ -23,14 +23,15 @@ private const val MODEL_PATH =
     "C:\\Users\\ablem\\whisper.cpp\\models\\ggml-small.bin"
 
 
-private fun addDB(topic : String, content: String)
+private fun addDB(title : String?, topic : String?, content: String) : Int
 {
-    transaction {
+    return transaction {
         feedbackInfo.insert {
+            it[feedbackInfo.title] = title
             it[feedbackInfo.topic] = topic
             it[text] = content
             it[qnaQuery] = mapOf()
-        }
+        } get feedbackInfo.id
     }
 }
 
@@ -136,11 +137,17 @@ fun Route.presentationRouter()
                 audioFile!!.delete()
                 wavFile.delete()
 
-                addDB(topic, result)
+                var id : Int
+                if(flag) {
+                    id = addDB(null, topic, result)
+                } else {
+                    id = addDB(topic, null, result)
+                }
 
-                val reComent = callGpt(topic!!, result)
+                //val reComent = callGpt(topic!!, result)
 
-                call.respond(reComent)
+                //call.respond(reComent)
+                call.respond(id)
 
             } catch (e: Exception) {
                 call.respond(
