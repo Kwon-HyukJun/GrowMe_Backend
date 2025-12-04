@@ -31,4 +31,11 @@ dependencies {
     implementation("io.ktor:ktor-server-cors:3.3.2")
     implementation("org.apache.pdfbox:pdfbox:2.0.29")
     implementation("kr.dogfoot:hwplib:1.1.4")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
+    implementation("org.jetbrains.exposed:exposed-json:0.51.1")
+    implementation("org.jetbrains.exposed:exposed-core:0.51.1")
+    implementation("org.jetbrains.exposed:exposed-dao:0.51.1")
+    implementation("org.jetbrains.exposed:exposed-jdbc:0.51.1")
+
+    implementation("org.postgresql:postgresql:42.7.0")
 }

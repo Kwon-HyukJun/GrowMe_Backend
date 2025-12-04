@@ -1,12 +1,5 @@
 package com.example
 
-import io.ktor.client.request.header
-import io.ktor.client.request.post
-import io.ktor.client.request.setBody
-import io.ktor.client.statement.HttpResponse
-import io.ktor.client.statement.bodyAsText
-import io.ktor.http.ContentType
-import io.ktor.http.HttpHeaders
 import io.ktor.http.content.PartData
 import io.ktor.http.content.forEachPart
 import io.ktor.server.request.receiveMultipart
@@ -15,10 +8,11 @@ import io.ktor.server.routing.post
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.route
 import io.ktor.http.content.streamProvider
-import kotlinx.serialization.json.Json
 import org.apache.pdfbox.pdmodel.PDDocument
 import org.apache.pdfbox.text.PDFTextStripper
 import java.io.ByteArrayInputStream
+import org.jetbrains.exposed.sql.transactions.transaction
+import org.jetbrains.exposed.sql.insert
 
 private fun readHwp(bytes: ByteArray): String
 {
@@ -35,39 +29,14 @@ private fun readPdf(bytes: ByteArray): String
     return text
 }
 
-private suspend fun callGpt(book: String, text: String): String
-{
-    val prompt = """
-                "${book}"에 대해 독후감을 써봤는데 숫자로만 평가해줘. 평가 근거를 들어서.
-                독후감: 
-                 "${text}"
-            """.trimIndent()
-
-    val requestBody = LLMRequest(
-        model = "gpt-4o-mini",
-        messages = listOf(
-            ChatMessage("user", prompt)
-        )
-    )
-
-    val llmResponse: HttpResponse = client.post("https://api.openai.com/v1/chat/completions") {
-        header(HttpHeaders.ContentType, ContentType.Application.Json)
-        header(HttpHeaders.Authorization, "Bearer ${System.getenv("OPENAI_API_KEY")}")
-
-        setBody(requestBody)
+private fun addDB(title: String, content: String) {
+    transaction {
+        feedbackInfo.insert {
+            it[feedbackInfo.title] = title
+            it[text] = content
+            it[qnaQuery] = mapOf()
+        }
     }
-
-    val resultText = llmResponse.bodyAsText()
-
-    val json = Json {
-        ignoreUnknownKeys = true
-    }
-
-    val parsed = json.decodeFromString<ChatCompletionResponse>(resultText)
-
-    val content = parsed.choices.first().message.content
-
-    return content
 }
 
 fun Route.reviewRouter()
@@ -116,12 +85,15 @@ fun Route.reviewRouter()
                 flag = false
             }
 
+
             if(flag)
             {
-                reText = callGpt(book!!, extractedText)
+                addDB(book, extractedText);
+                //reText = callGpt(book!!, extractedText)
             }
 
-            call.respond(reText)
+            call.respond("Sussess")
+            //call.respond(reText)
         }
     }
 }

@@ -1,16 +1,7 @@
 package com.example
 
-import io.ktor.client.request.header
-import io.ktor.client.request.post
-import io.ktor.client.request.setBody
-import io.ktor.client.statement.HttpResponse
-import io.ktor.client.statement.bodyAsText
-import io.ktor.http.ContentType
-import io.ktor.http.HttpHeaders
-import io.ktor.server.request.receive
 import io.ktor.server.response.respond
 import io.ktor.server.routing.post
-import kotlinx.serialization.json.Json
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.route
 import io.ktor.server.request.receiveMultipart
@@ -19,6 +10,11 @@ import io.ktor.http.content.PartData
 import io.ktor.http.content.streamProvider
 import io.ktor.http.HttpStatusCode
 import java.io.File
+import org.jetbrains.exposed.sql.transactions.transaction
+import org.jetbrains.exposed.sql.insert
+
+private const val FFMPEG_PATH =
+    "C:\\ffmpeg-7.1.1-essentials_build\\bin\\ffmpeg.exe"
 
 private const val WHISPER_PATH =
     "C:\\Users\\ablem\\whisper.cpp\\build\\bin\\Release\\whisper-cli.exe"
@@ -26,6 +22,34 @@ private const val WHISPER_PATH =
 private const val MODEL_PATH =
     "C:\\Users\\ablem\\whisper.cpp\\models\\ggml-small.bin"
 
+
+private fun addDB(topic : String, content: String)
+{
+    transaction {
+        feedbackInfo.insert {
+            it[feedbackInfo.topic] = topic
+            it[text] = content
+            it[qnaQuery] = mapOf()
+        }
+    }
+}
+
+fun convertWebmToWav(input: File): File {
+    val output = File(input.absolutePath + ".wav")
+
+    val process = ProcessBuilder(
+        FFMPEG_PATH,
+        "-y",
+        "-i", input.absolutePath,
+        "-ac", "1",
+        "-ar", "16000",
+        output.absolutePath
+    ).start()
+
+    process.waitFor()
+
+    return output
+}
 
 fun runWhisper(audioFile: File): String {
 
@@ -58,41 +82,6 @@ fun runWhisper(audioFile: File): String {
     return resultText
 }
 
-private suspend fun callGpt(topic: String, text: String): String
-{
-    val prompt = """
-                "${topic}"에 대해 발표 대본을 써봤는데 숫자로만 평가해줘. 평가 근거를 들어서.
-                독후감: 
-                 "${text}"
-            """.trimIndent()
-
-    val requestBody = LLMRequest(
-        model = "gpt-4o-mini",
-        messages = listOf(
-            ChatMessage("user", prompt)
-        )
-    )
-
-    val llmResponse: HttpResponse = client.post("https://api.openai.com/v1/chat/completions") {
-        header(HttpHeaders.ContentType, ContentType.Application.Json)
-        header(HttpHeaders.Authorization, "Bearer ${System.getenv("OPENAI_API_KEY")}")
-
-        setBody(requestBody)
-    }
-
-    val resultText = llmResponse.bodyAsText()
-
-    val json = Json {
-        ignoreUnknownKeys = true
-    }
-
-    val parsed = json.decodeFromString<ChatCompletionResponse>(resultText)
-
-    val content = parsed.choices.first().message.content
-
-    return content
-}
-
 fun Route.presentationRouter()
 {
     route("/presentation")
@@ -102,13 +91,15 @@ fun Route.presentationRouter()
             val multipart = call.receiveMultipart()
             var audioFile: File? = null
             var topic: String? = null
+            var flag: Boolean = false
 
             multipart.forEachPart { part ->
                 when (part) {
 
                     is PartData.FormItem -> {
-                        if (part.name == "topic") {
-                            topic = part.value
+                        when (part.name) {
+                            "topic" -> topic = part.value
+                            "isFromBookPage" -> flag = part.value.toBoolean()
                         }
                     }
 
@@ -129,6 +120,7 @@ fun Route.presentationRouter()
                 part.dispose()
             }
 
+
             if (audioFile == null) {
                 call.respond(HttpStatusCode.BadRequest, "녹음 파일이 없습니다.")
                 return@post
@@ -139,8 +131,12 @@ fun Route.presentationRouter()
             }
 
             try {
-                val result = runWhisper(audioFile!!)
+                val wavFile = convertWebmToWav(audioFile!!)
+                val result = runWhisper(wavFile)
                 audioFile!!.delete()
+                wavFile.delete()
+
+                addDB(topic, result)
 
                 val reComent = callGpt(topic!!, result)
 
