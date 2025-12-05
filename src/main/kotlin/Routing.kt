@@ -34,5 +34,6 @@ fun Application.configureRouting() {
         reviewRouter()
         presentationRouter()
         thoughtRouter()
+        feedbackRouter()
     }
 }

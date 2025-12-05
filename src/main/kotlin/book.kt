@@ -23,6 +23,7 @@ fun Route.bookRouter()
 
             val prompt = """
                 "${book}"과 관련된 도서 5권을 추천해줘.
+                ${book}이라는 책이 있으면 그것을 가장 우선적으로 추천해줘.
                 반드시 아래 형식의 JSON 배열로만 답해.
 
                 [
