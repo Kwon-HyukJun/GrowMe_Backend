@@ -11,5 +11,5 @@ object feedbackInfo : Table("feedback_info") {
     val title = text("title").nullable()
     val topic = text("topic").nullable()
     val text = text("text")
-    val qnaQuery = jsonb<Map<String, String>>("qna_query", Json)
+    val qnaQuery = jsonb<List<Map<String, String>>>("qna_query", Json)
 }

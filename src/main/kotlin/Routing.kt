@@ -33,5 +33,6 @@ fun Application.configureRouting() {
         topicRouter()
         reviewRouter()
         presentationRouter()
+        thoughtRouter()
     }
 }

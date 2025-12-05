@@ -10,14 +10,8 @@ import io.ktor.http.HttpHeaders
 import kotlinx.serialization.json.Json
 
 
-suspend fun callGpt(book: String, text: String): String
+suspend fun callGpt(prompt: String): String
 {
-    val prompt = """
-                "${book}"에 대해 독후감을 써봤는데 숫자로만 평가해줘. 평가 근거를 들어서.
-                독후감: 
-                 "${text}"
-            """.trimIndent()
-
     val requestBody = LLMRequest(
         model = "gpt-4o-mini",
         messages = listOf(

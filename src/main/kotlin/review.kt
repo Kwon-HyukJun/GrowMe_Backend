@@ -34,7 +34,7 @@ private fun addDB(title: String, content: String) : Int {
         feedbackInfo.insert {
             it[feedbackInfo.title] = title
             it[text] = content
-            it[qnaQuery] = mapOf()
+            it[qnaQuery] = emptyList()
         } get feedbackInfo.id
     }
 }

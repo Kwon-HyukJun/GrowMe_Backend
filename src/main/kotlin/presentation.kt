@@ -30,7 +30,7 @@ private fun addDB(title : String?, topic : String?, content: String) : Int
             it[feedbackInfo.title] = title
             it[feedbackInfo.topic] = topic
             it[text] = content
-            it[qnaQuery] = mapOf()
+            it[qnaQuery] = emptyList()
         } get feedbackInfo.id
     }
 }
